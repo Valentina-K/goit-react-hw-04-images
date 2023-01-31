@@ -1,6 +1,6 @@
 import { PropTypes } from 'prop-types';
 import ImageGalleryItem from 'components/ImageGalleryItem/ImageGalleryItem';
-import Modal from '../Modal/Modal';
+import { Modal } from '../Modal/Modal';
 import React, { Component } from 'react';
 
 export default class ImageGallery extends Component {
