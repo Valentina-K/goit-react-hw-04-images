@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect } from 'react';
 import Notiflix from 'notiflix';
 import Loader from './Loader/Loader';
 import Button from './Button/Button';
@@ -6,110 +6,101 @@ import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from './Searchbar/Searchbar';
 import api from '../api/api';
 
-export default class App extends Component {
-  state = {
-    images: [],
-    page: 1,
-    searchQuery: '',
-    countHits: 12,
-    status: 'idle',
-  };
+export default function App() {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [countHits, setCountHits] = useState(0);
+  const [totalHits, setTotalHits] = useState(500);
+  const [status, setStatus] = useState('idle');
 
-  async componentDidUpdate(_, prevState) {
-    const { searchQuery, page, countHits } = this.state;
-    if (prevState.searchQuery !== searchQuery || prevState.page !== page) {
-      try {
-        const { hits, totalHits } = await api.fetchImagesWithQuery(
-          searchQuery,
-          page
-        );
-        if (hits.length === 0) {
+  useEffect(() => {
+    if (searchQuery === '') {
+      return;
+    }
+    api
+      .fetchImagesWithQuery(searchQuery, page)
+      .then(data => {
+        if (data.total === 0) {
           throw new Error(
             'Sorry, there are no images matching your search query. Please try again.'
           );
         }
-        if (countHits >= totalHits) {
-          Notiflix.Notify.info(
-            "We're sorry, but you've reached the end of search results."
-          );
-          this.setState({
-            images: [...prevState.images, ...hits],
-            status: 'resolvedAll',
-          });
-        } else {
-          const newHits = hits.map(hit => {
-            let { id, tags, largeImageURL, webformatURL } = hit;
-            return { id, tags, largeImageURL, webformatURL };
-          });
-          this.setState(prevState => ({
-            images: [...prevState.images, ...newHits],
-            status: 'resolved',
-          }));
-        }
-      } catch (error) {
-        Notiflix.Notify.warning(error.message);
-        this.setState({
-          status: 'idle',
+        const newHits = data.hits.map(hit => {
+          let { id, tags, largeImageURL, webformatURL } = hit;
+          return { id, tags, largeImageURL, webformatURL };
         });
-      }
+        setImages(prev => [...prev, ...newHits]);
+        setStatus('resolved');
+        setTotalHits(data.totalHits);
+        setCountHits(prev => prev + 12);
+      })
+      .catch(error => {
+        Notiflix.Notify.warning(error.message);
+        setStatus('idle');
+      });
+  }, [searchQuery, page]);
+
+  useEffect(() => {
+    if (totalHits === 0) {
+      return;
     }
+    if (countHits >= totalHits) {
+      Notiflix.Notify.info(
+        "We're sorry, but you've reached the end of search results."
+      );
+      setStatus('resolvedAll');
+    }
+  }, [countHits, totalHits]);
+
+  const onSearch = searchQuery => {
+    setSearchQuery(searchQuery);
+    setPage(1);
+    setCountHits(0);
+    setStatus('pending');
+    setImages([]);
+  };
+
+  const onLoad = () => {
+    setPage(prev => prev + 1);
+    setStatus('pendingLoading');
+  };
+
+  if (status === 'idle') {
+    return <Searchbar onSearch={onSearch} />;
   }
-
-  onLoad = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-      countHits: prevState.countHits + 12,
-      status: 'pendingLoading',
-    }));
-  };
-  onSearch = searchQuery => {
-    this.setState({
-      searchQuery,
-      page: 1,
-      countHits: 12,
-      status: 'pending',
-      images: [],
-    });
-  };
-
-  render() {
-    const { images, status } = this.state;
-    if (status === 'idle') {
-      return <Searchbar onSearch={this.onSearch} />;
-    }
-    if (status === 'pending') {
-      return (
-        <>
-          <Searchbar onSearch={this.onSearch} />
-          <Loader />
-        </>
-      );
-    }
-    if (status === 'resolved') {
-      return (
-        <>
-          <Searchbar onSearch={this.onSearch} />
-          <ImageGallery images={images} />
-          <Button onClick={this.onLoad} />
-        </>
-      );
-    }
-    if (status === 'pendingLoading') {
-      return (
-        <>
-          <Searchbar onSearch={this.onSearch} />
-          <ImageGallery images={images} />
-          <Loader />
-        </>
-      );
-    }
-    if (status === 'resolvedAll') {
-      return (
-        <>
-          <Searchbar onSearch={this.onSearch} />
-          <ImageGallery images={images} />
-        </>
-      );
-    }
+  if (status === 'pending') {
+    return (
+      <>
+        <Searchbar onSearch={onSearch} />
+        <Loader />
+      </>
+    );
+  }
+  if (status === 'resolved') {
+    return (
+      <>
+        <Searchbar onSearch={onSearch} />
+        <ImageGallery images={images} />
+        <Button onClick={onLoad} />
+      </>
+    );
+  }
+  if (status === 'pendingLoading') {
+    return (
+      <>
+        <Searchbar onSearch={onSearch} />
+        <ImageGallery images={images} />
+        <Loader />
+      </>
+    );
+  }
+  if (status === 'resolvedAll') {
+    return (
+      <>
+        <Searchbar onSearch={onSearch} />
+        <ImageGallery images={images} />
+      </>
+    );
   }
 }
