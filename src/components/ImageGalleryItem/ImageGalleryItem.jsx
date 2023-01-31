@@ -1,10 +1,18 @@
 import { PropTypes } from 'prop-types';
-const ImageGalleryItem = ({ webformatURL, tags, onClick }) => {
+import { useState } from 'react';
+import { Modal } from '../Modal/Modal';
+const ImageGalleryItem = ({ webformatURL, largeImageURL, tags }) => {
+  const [isModalShow, setIsModalShow] = useState(false);
   return (
     <li className="ImageGalleryItem">
-      <div onClick={onClick}>
+      <div onClick={() => setIsModalShow(true)}>
         <img className="ImageGalleryItem-image" src={webformatURL} alt={tags} />
       </div>
+      {isModalShow && (
+        <Modal onClose={() => setIsModalShow(false)}>
+          <img src={largeImageURL} alt={tags} />
+        </Modal>
+      )}
     </li>
   );
 };
@@ -12,6 +20,7 @@ const ImageGalleryItem = ({ webformatURL, tags, onClick }) => {
 ImageGalleryItem.propTypes = {
   id: PropTypes.number.isRequired,
   webformatURL: PropTypes.string.isRequired,
+  largeImageURL: PropTypes.string.isRequired,
   tags: PropTypes.string,
 };
 export default ImageGalleryItem;

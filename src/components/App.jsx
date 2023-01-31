@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import Notiflix from 'notiflix';
 import Loader from './Loader/Loader';
 import Button from './Button/Button';
-import ImageGallery from './ImageGallery/ImageGallery';
+import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from './Searchbar/Searchbar';
 import api from '../api/api';
 
